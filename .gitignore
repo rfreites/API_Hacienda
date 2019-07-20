@@ -8,3 +8,5 @@ build/*
 *settings.php
 .DS_Store
 .vscode
+data/
+.env

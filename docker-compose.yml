@@ -1,0 +1,50 @@
+version: '3.7'
+
+services:
+
+  traefik:
+    container_name: ${DOMAIN}-traefik
+    image: traefik
+    command: --web --docker --docker.domain=${DOMAIN}.localhost --logLevel=DEBUG
+    ports:
+      - 8060:80
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /dev/null:/traefik.toml
+
+  php:
+    container_name: ${DOMAIN}-php
+    build: .
+    volumes:
+      - ./www:/var/www/html
+      - ./api:/var/www/api
+    labels:
+      - "traefik.backend=web-${DOMAIN}"
+      - "traefik.frontend.rule=Host:web.${DOMAIN}.localhost"
+    depends_on:
+      - database
+
+  database:
+    container_name: ${DOMAIN}-database
+    image: mysql:5.6
+    restart: always
+    environment:
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASS}
+      MYSQL_ROOT_PASSWORD: ${ROOT_PASS}
+    labels:
+      - "traefik.enable=false"
+    volumes:
+      - ./data:/var/lib/mysql
+
+  adminer:
+    container_name: ${DOMAIN}-adminer
+    image: adminer
+    restart: always
+    labels:
+      - "traefik.backend=adminer-${DOMAIN}"
+      - "traefik.frontend.rule=Host:adminer.${DOMAIN}.localhost"
+      - "traefik.port=8080"
+    depends_on:
+      - database
